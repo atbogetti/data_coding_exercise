@@ -10,7 +10,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from sklearn.decomposition import PCA
 
 def load_and_prepare_data(fname):
     # Load the text file in as a pandas dataframe
@@ -24,31 +24,29 @@ def load_and_prepare_data(fname):
     return features_zero_centered.values
 
 
-def svd(A):
-    # Decompose A into: A = U S V.T
-    # I get S and V.T from A.T A
-    S, VT = np.linalg.eigh(np.dot(A.T,A))
-    S = S[::-1]
-    VT = VT[::-1]
+def pca_manual(A):
+
+    # generate covariance matrix for featurized, mean-centered data
+    cov_matrix = np.cov(A.T)
+
+    # calculate eigenvectors and eigenvalues
+    evals, evects = np.linalg.eig(cov_matrix)
     
-    # Obtain eigenvalues for descibing how much of variance is explained by each PC
-    eigenvalues = S
-    print("PC1 explains", str(((eigenvalues/np.sum(eigenvalues))*100)[0])+"%", "of the variance.")
-    print("PC2 explains", str(((eigenvalues/np.sum(eigenvalues))*100)[1])+"%", "of the variance.")
+    # sort data in order of descending eigenvalues
+    order = np.argsort(evals)[::-1]
+    evals = evals[order]
+    evects = evects[:,order]
+ 
+    # print how much of data each PC explains
+    print("PC1 explains", str(((evals/np.sum(evals))*100)[0])+"%", "of the variance.")
+    print("PC2 explains", str(((evals/np.sum(evals))*100)[1])+"%", "of the variance.")
     
-    # Must first square root S and diagonalize
-    S = np.diag(np.sqrt(S))
-    
-    # Since VT V is equal to I, U S = A V
-    US = np.dot(A,VT.T)
-    
-    # V are the principal components and US are the transformed data points
-    principal_components = VT.T
-    transformed_data = US
-    
-    # Define the first and second principal components
-    pc1 = transformed_data[:,0]
-    pc2 = transformed_data[:,1]
+    # transform original data
+    transformed_data = evects.T.dot(A.T) 
+
+    # extract first and second principal components
+    pc1 = transformed_data[0]
+    pc2 = transformed_data[1]
 
     return pc1, pc2
 
@@ -90,8 +88,16 @@ if __name__ == "__main__":
     # Load and prepare data
     data = load_and_prepare_data("data_coding_exercise.txt")
     
-    # Get the first and second principle components
-    pc1, pc2 = svd(data)
+    # sanity check against scikitlearn's PCA calculation
+    pca = PCA(n_components=2)
+    pca.fit(data)
+    tdata = pca.transform(data)
+
+    # Get the first and second principal components manually
+    pc1, pc2 = pca_manual(data)
+
+    # check that my PCs are close to those from scikitlearn
+    assert (tdata[:,0][0] - pc1[0]) < 1E-10
     
     # Make plots
     plot_1d_hist(pc1, "pc1")
