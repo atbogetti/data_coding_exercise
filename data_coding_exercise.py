@@ -8,20 +8,21 @@
 # two principal components is also printed as output. 
 
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
 def load_and_prepare_data(fname):
-    # Load the text file in as a pandas dataframe
-    dataframe = pd.read_csv(fname, sep=' ', header=None)
-    print("The dataframe has",dataframe.shape[0],"rows and",dataframe.shape[1],"columns.")
+    # Load the text file in as a numpy array
+    data = np.loadtxt(fname)
+    print("The data array has",data.shape[0],"rows and",data.shape[1],"columns.")
 
-    # Subtract means from each column to get zero-centered features
-    features = dataframe.copy()
-    features_zero_centered = features.sub(features.mean())
+    # mean-center the data
+    centered_data = []
+    feature_means = np.mean(data, axis=0)
+    for row in data:
+        centered_data.append(row - feature_means)
 
-    return features_zero_centered.values
+    return np.array(centered_data)
 
 
 def pca_manual(A):
