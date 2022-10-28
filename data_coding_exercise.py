@@ -10,11 +10,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from sklearn.metrics import mutual_info_score
 
 def load_and_prepare_data(fname):
     # Load the text file in as a numpy array
     data = np.loadtxt(fname)
-    print("The data array has",data.shape[0],"rows and",data.shape[1],"columns.")
+    print("\n"+"The data array has",data.shape[0],"rows and",data.shape[1],"columns.", "\n")
 
     # mean-center the data
     centered_data = []
@@ -40,7 +41,7 @@ def pca_manual(A):
  
     # print how much of data each PC explains
     print("PC1 explains", str(((evals/np.sum(evals))*100)[0])+"%", "of the variance.")
-    print("PC2 explains", str(((evals/np.sum(evals))*100)[1])+"%", "of the variance.")
+    print("PC2 explains", str(((evals/np.sum(evals))*100)[1])+"%", "of the variance.", "\n")
     
     # transform original data
     transformed_data = evects.T.dot(A.T) 
@@ -85,6 +86,12 @@ def plot_2d_hist(pc1, pc2, pc1_name, pc2_name, bins=10):
     plt.colorbar(label="-ln(P)")
     plt.savefig(pc1_name+"_"+pc2_name+"_hist.pdf")
 
+def calc_mut_inf(pc1, pc2, bins=10):
+    # calculating the mutual information in scikitlearn, I'm not sure
+    # about the math to get here
+    hist2d = np.histogram2d(pc1, pc2, bins=bins)[0]
+    return mutual_info_score(None, None, contingency=hist2d)
+
 if __name__ == "__main__":
     # Load and prepare data
     data = load_and_prepare_data("data_coding_exercise.txt")
@@ -97,9 +104,16 @@ if __name__ == "__main__":
     # Get the first and second principal components manually
     pc1, pc2 = pca_manual(data)
 
+
     # check that my PCs are close to those from scikitlearn
     assert (tdata[:,0][0] - pc1[0]) < 1E-10
     
+    # calculate the mutual information between pc1 and pc2
+    # also between pc1 and pc1 squared
+    pc1_sqr = pc1**2
+    print("Mutual information between PC1 and PC2 is", calc_mut_inf(pc1, pc2, 10))
+    print("Mutual information between PC1 and PC1^2 is", calc_mut_inf(pc1, pc1_sqr, 10), "\n")
+
     # Make plots
     plot_1d_hist(pc1, "pc1")
     plot_1d_hist(pc2, "pc2")
